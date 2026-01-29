@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import reactor.core.publisher.Mono;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rdbackend.weather_api.config.WeatherApiProperties;
@@ -58,8 +60,14 @@ public class OpenWeatherClientImpl implements OpenWeatherClient {
         String response = webClient.get()
                 .uri(uri)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError(), clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> Mono
+                                .error(new RuntimeException("OpenWeather API client error: " + errorBody))))
+                .onStatus(status -> status.is5xxServerError(), clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> Mono
+                                .error(new RuntimeException("OpenWeather API server error: " + errorBody))))
                 .bodyToMono(String.class)
-                .block(); // Blocks execution to return simple object (DTO)
+                .block();
 
         // System.out.println("Response from OpenWeather API for " + city + ": " +
         // response);
@@ -127,8 +135,14 @@ public class OpenWeatherClientImpl implements OpenWeatherClient {
         String response = webClient.get()
                 .uri(uri)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError(), clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> Mono
+                                .error(new RuntimeException("OpenWeather API client error: " + errorBody))))
+                .onStatus(status -> status.is5xxServerError(), clientResponse -> clientResponse.bodyToMono(String.class)
+                        .flatMap(errorBody -> Mono
+                                .error(new RuntimeException("OpenWeather API server error: " + errorBody))))
                 .bodyToMono(String.class)
-                .block(); // Blocks execution to return simple object (DTO)
+                .block();
 
         // System.out.println("Response from OpenWeather API for " + city + ": " +
         // response);
