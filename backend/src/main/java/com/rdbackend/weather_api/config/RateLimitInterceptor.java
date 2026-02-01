@@ -1,5 +1,8 @@
 package com.rdbackend.weather_api.config;
 
+import java.time.Duration;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -9,17 +12,34 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
 
+    private final StringRedisTemplate redisTemplate;
+
+    public RateLimitInterceptor(StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
     @Override
     public boolean preHandle(
             HttpServletRequest request,
             HttpServletResponse response,
             Object handler) throws Exception {
 
-        // Step 1: extract client identifier (IP for now)
         String clientIp = extractClientIp(request);
-        System.out.println("RateLimitInterceptor hit for IP: " + clientIp);
+        String key = "rate:ip:" + clientIp;
 
-        // TEMP: allow all requests for now
+        Long count = redisTemplate.opsForValue().increment(key);
+
+        if (count != null && count == 1) {
+            // first request → set TTL
+            redisTemplate.expire(key, Duration.ofSeconds(60));
+        }
+
+        if (count != null && count > 10) {
+            response.setStatus(429);
+            response.getWriter().write("Too many requests. Try again later.");
+            return false;
+        }
+
         return true;
     }
 
