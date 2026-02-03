@@ -29,6 +29,7 @@ public class GlobalExceptionHandler {
             }
         }
         body.put("timestamp", Instant.now());
+        body.put("StausCode", HttpStatus.BAD_GATEWAY);
 
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
     }
