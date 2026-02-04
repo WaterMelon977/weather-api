@@ -7,6 +7,7 @@ public class WeatherApiProperties {
 
     private String baseUrl;
     private String key;
+    private String baseUrl2;
 
     public String getBaseUrl() {
         return baseUrl;
@@ -22,6 +23,14 @@ public class WeatherApiProperties {
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    public String getBaseUrl2() {
+        return baseUrl2;
+    }
+
+    public void setBaseUrl2(String baseUrl2) {
+        this.baseUrl2 = baseUrl2;
     }
 
 }

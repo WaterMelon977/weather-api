@@ -13,18 +13,24 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.rdbackend.weather_api.entity.User;
 import com.rdbackend.weather_api.security.JwtService;
+import com.rdbackend.weather_api.service.UserService;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 @RestController
 public class AuthController {
 
     private final JwtService jwtService;
+    private final UserService userService;
 
-    public AuthController(JwtService jwtService) {
+    public AuthController(JwtService jwtService, UserService userService) {
         this.jwtService = jwtService;
+        this.userService = userService;
     }
 
     @GetMapping("/auth/success")
@@ -46,11 +52,8 @@ public class AuthController {
         } else {
             picture = user.getAttribute("avatar_url");
         }
-
-        // System.out.println(email);
-        // System.out.println(provider);
-        // System.out.println(name);
-        // System.out.println(picture);
+        userService.upsertOAuthUser(email, name, picture, provider);
+        // System.out.println("User: " + user2);
 
         String token = jwtService.generateToken(email, provider, name, picture);
 
@@ -83,14 +86,30 @@ public class AuthController {
         }
     }
 
-    @GetMapping("auth/logout")
-    public void logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie("AUTH_TOKEN", "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // true in production (HTTPS)
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+    @GetMapping("/auth/logout")
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        // 1. Invalidate Session
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
+        // 2. Clear AUTH_TOKEN
+        Cookie jwtCookie = new Cookie("AUTH_TOKEN", "");
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setSecure(false);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge(0);
+        response.addCookie(jwtCookie);
+
+        // 3. Clear JSESSIONID
+        Cookie sessionCookie = new Cookie("JSESSIONID", "");
+        sessionCookie.setHttpOnly(true);
+        sessionCookie.setSecure(false);
+        sessionCookie.setPath("/");
+        sessionCookie.setMaxAge(0);
+        response.addCookie(sessionCookie);
+
         try {
             response.sendRedirect("http://localhost:3000");
         } catch (IOException e) {
