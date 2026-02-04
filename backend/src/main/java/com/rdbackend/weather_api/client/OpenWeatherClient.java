@@ -1,12 +1,17 @@
 package com.rdbackend.weather_api.client;
 
+import java.util.List;
+
+import com.rdbackend.weather_api.dto.CitySuggestionDTO;
 import com.rdbackend.weather_api.dto.ForecastResponseDTO;
 import com.rdbackend.weather_api.dto.WeatherResponseDTO;
 
 public interface OpenWeatherClient {
 
-    public WeatherResponseDTO getCurrentWeather(String city);
+    WeatherResponseDTO getCurrentWeather(String city);
 
-    public ForecastResponseDTO getForecast(String city);
+    ForecastResponseDTO getForecast(String city);
+
+    List<CitySuggestionDTO> suggestCities(String query);
 
 }

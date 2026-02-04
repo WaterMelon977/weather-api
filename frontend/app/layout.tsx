@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: "A premium weather experience",
 };
 
+import { Navbar } from "@/components/Navbar";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,6 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} antialiased min-h-screen bg-fixed bg-cover bg-center`}
         style={{ backgroundImage: "url('/crystal_bg.png')" }}
       >
+        <Navbar />
         {children}
       </body>
     </html>

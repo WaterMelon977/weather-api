@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getCurrentWeather, getForecast } from "../services/weather";
+import { getCurrentWeather, getForecast, getCitySuggestions } from "../services/weather";
 import { WeatherSlider } from "@/components/ui/weather-slider";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Wind, Droplets, Eye, Sun, Sunrise, Sunset, Thermometer, MapPin } from "lucide-react";
+import { Search, Wind, Droplets, Eye, Sun, Sunrise, Sunset, Thermometer, MapPin, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/useAuth";
+import { useDebounce } from "@/lib/useDebounce";
+import Link from "next/link";
 
 export default function Home() {
   const [city, setCity] = useState("");
@@ -15,22 +18,68 @@ export default function Home() {
   const [current, setCurrent] = useState<any>(null);
   const [forecast, setForecast] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState("");
+  const { isAuthenticated } = useAuth();
 
-  const handleSearch = async () => {
-    if (!city) return;
+  const debouncedCity = useDebounce(city, 400);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (debouncedCity.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      setSuggestionsLoading(true);
+      try {
+        const data = await getCitySuggestions(debouncedCity);
+        setSuggestions(data);
+      } catch (err) {
+        console.error("Failed to fetch suggestions:", err);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [debouncedCity]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearch = async (overrideCity?: string) => {
+    const searchCity = overrideCity || city;
+    if (!searchCity) return;
+
+    setShowSuggestions(false);
     try {
       setLoading(true);
       setError("");
 
-      // Only fetch the one requested
       if (mode === "current") {
-        const data = await getCurrentWeather(city);
+        const data = await getCurrentWeather(searchCity);
         setCurrent(data);
         setForecast(null);
       } else {
-        const data = await getForecast(city);
+        const data = await getForecast(searchCity);
         setForecast(data);
         setCurrent(null);
       }
@@ -41,6 +90,14 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSelectSuggestion = (suggestion: any) => {
+    const cityName = suggestion.name;
+    setCity(cityName);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    handleSearch(cityName);
   };
 
   const isDayTime = current ? (() => {
@@ -60,14 +117,14 @@ export default function Home() {
         <h1 className="text-5xl md:text-7xl font-bold crystal-text tracking-tight">
           Crystal Weather
         </h1>
-        <p className="text-foreground/60 text-lg">Experience the elements in clarity</p>
+        <p className="text-foreground/60 text-lg">No Fluff weather forecast for you.</p>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2 }}
-        className={`glass p-6 md:p-8 rounded-[2rem] w-full max-w-2xl flex flex-col items-center gap-6 md:gap-8 border-white/40 shadow-2xl ${isDayTime ? 'bg-white/40' : 'bg-indigo-900/20'}`}
+        className={`glass p-6 md:p-8 rounded-[2rem] w-full max-w-2xl flex flex-col items-center gap-6 md:gap-8 border-white/40 shadow-2xl relative z-50 ${isDayTime ? 'bg-white/40' : 'bg-indigo-900/20'}`}
       >
         <WeatherSlider mode={mode} onChange={setMode} />
 
@@ -75,15 +132,63 @@ export default function Home() {
           <div className="relative flex-1">
             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground/40" />
             <Input
+              ref={inputRef}
               placeholder="Where to?"
-              className="pl-12 h-12 md:h-14 rounded-xl md:rounded-2xl bg-white/20 border-white/30 focus:bg-white/40 focus:ring-primary/40 transition-all text-base md:text-lg w-full"
+              className="pl-12 h-12 md:h-14 rounded-xl md:rounded-2xl bg-white/20 border-white/30 focus:bg-white/40 focus:ring-primary/40 transition-all text-base md:text-lg w-full placeholder:text-foreground/30"
               value={city}
-              onChange={(e) => setCity(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                  setShowSuggestions(false);
+                }
+              }}
             />
+
+            <AnimatePresence>
+              {showSuggestions && (suggestions.length > 0 || suggestionsLoading) && (
+                <motion.div
+                  ref={suggestionsRef}
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute z-50 left-0 right-0 top-full mt-2 overflow-hidden glass rounded-2xl md:rounded-3xl border border-white/20 shadow-2xl bg-white/10 backdrop-blur-2xl"
+                >
+                  <div className="p-2 space-y-1 max-h-[280px] overflow-y-auto custom-scrollbar">
+                    {suggestionsLoading && suggestions.length === 0 ? (
+                      <div className="p-4 flex items-center justify-center gap-2 text-foreground/40">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm font-medium">Finding cities...</span>
+                      </div>
+                    ) : (
+                      suggestions.map((s, idx) => (
+                        <button
+                          key={`${s.lat}-${s.lon}-${idx}`}
+                          onClick={() => handleSelectSuggestion(s)}
+                          className="w-full text-left p-3 md:p-4 rounded-xl flex items-center justify-between hover:bg-white/20 transition-colors group"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-bold text-base md:text-lg group-hover:text-primary transition-colors">
+                              {s.name}
+                            </span>
+                          </div>
+                          <span className="text-xs md:text-sm font-black text-foreground/40 px-2 py-1 rounded-md bg-white/10">
+                            {s.country}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <Button
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
             className="h-12 md:h-14 px-8 rounded-xl md:rounded-2xl bg-primary hover:bg-primary/80 text-white shadow-xl shadow-primary/20 transition-all active:scale-95 w-full sm:w-auto"
             disabled={loading}
           >
@@ -193,7 +298,7 @@ export default function Home() {
           </motion.div>
         )}
 
-        {forecast && mode === "forecast" && (
+        {forecast && mode === "forecast" && isAuthenticated && (
           <motion.div
             key="forecast-weather"
             initial={{ opacity: 0, y: 20 }}
@@ -272,6 +377,38 @@ export default function Home() {
                 </motion.div>
               ))}
             </div>
+          </motion.div>
+        )}
+
+        {mode === "forecast" && !isAuthenticated && (
+          <motion.div
+            key="login-prompt"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="w-full max-w-2xl px-4"
+          >
+            <Card className="glass overflow-hidden rounded-[2.5rem] border-white/20 shadow-2xl bg-linear-to-br from-primary/5 to-primary/10">
+              <CardContent className="p-10 flex flex-col items-center text-center space-y-6">
+                <div className="p-5 rounded-3xl bg-primary/20 text-primary ring-4 ring-primary/10">
+                  <Lock className="h-10 w-10" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-3xl font-black crystal-text tracking-tight">Premium Forecast</h3>
+                  <p className="text-foreground/60 font-medium max-w-md mx-auto">
+                    Get detailed 5-day weather insights and personalized alerts. Sign in to unlock this feature.
+                  </p>
+                </div>
+                <Button
+                  asChild
+                  className="h-14 px-10 rounded-2xl bg-primary hover:bg-primary/80 text-white font-bold text-lg shadow-xl shadow-primary/20 transition-all active:scale-95 group"
+                >
+                  <Link href="/login" className="flex items-center gap-3">
+                    Login to Unlock <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
 

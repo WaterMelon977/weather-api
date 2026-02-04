@@ -14,12 +14,28 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(WeatherApiException.class)
+    public ResponseEntity<Map<String, Object>> handleWeatherApiException(WeatherApiException ex) {
+        log.error("Weather API Exception: {}", ex.getMessage());
 
         Map<String, Object> body = new HashMap<>();
-        body.put("error", "WEATHER_API_ERROR");
-        // body.put("message", ex.getMessage());
+        body.put("error", "Weather API Error");
+        body.put("message", ex.getMessage());
+        body.put("timestamp", Instant.now());
+        body.put("status", ex.getStatus().value());
+
+        return ResponseEntity.status(ex.getStatus()).body(body);
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+        log.error("Unhandled runtime exception", ex);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", ex.getClass().getSimpleName());
+        body.put("message", ex.getMessage());
         String msg = ex.getMessage();
         if (msg != null && msg.contains("{")) {
             Matcher matcher = Pattern.compile("\"cod\":\"(\\d+)\",\"message\":\"(.*?)\"").matcher(msg);
@@ -29,7 +45,7 @@ public class GlobalExceptionHandler {
             }
         }
         body.put("timestamp", Instant.now());
-        body.put("StausCode", HttpStatus.BAD_GATEWAY);
+        body.put("StatusCode", HttpStatus.BAD_GATEWAY.value());
 
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(body);
     }
