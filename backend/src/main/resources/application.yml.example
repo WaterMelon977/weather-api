@@ -4,8 +4,45 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: <port_number>
+  cache:
+    type: redis
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: YOUR_GOOGLE_CLIENT_ID
+            client-secret: YOUR_GOOGLE_CLIENT_SECRET
+            scope:
+              - openid
+              - profile
+              - email
+          github:
+            client-id: YOUR_GITHUB_CLIENT_ID
+            client-secret: YOUR_GITHUB_CLIENT_SECRET
+            scope:
+              - user:email
+  datasource:
+    url: jdbc:postgresql://<host>:<port>/<db_name>?sslmode=require
+    username: <username>
+    password: <password>
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 openweathermap:
-  key: YOUR_API_KEY_HERE
+  key: YOUR_OPENWEATHER_API_KEY
   base-url: https://api.openweathermap.org/data/2.5
+  base-url2: https://api.openweathermap.org/geo/1.0/direct
+
+jwt:
+  secret: YOUR_RADOM_JWT_SECRET_STRING_32_CHARS_OR_LONGRE
+  expiry-minutes: 60
