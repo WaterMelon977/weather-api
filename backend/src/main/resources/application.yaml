@@ -40,10 +40,12 @@ spring:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+
 openweathermap:
   key: ${OPENWEATHER_KEY}
   base-url: https://api.openweathermap.org/data/2.5
   base-url2: https://api.openweathermap.org/geo/1.0/direct
+
 
 jwt:
   secret: ${JWT_SECRET}
@@ -53,6 +55,7 @@ app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   cookie:
     secure: ${COOKIE_SECURE:false}
+
 
 server:
   port: ${PORT:8080}
