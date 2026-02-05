@@ -54,6 +54,12 @@ public class SecurityConfig {
 
                 // Support multiple origins (comma-separated)
                 String[] origins = frontendUrl.split(",");
+
+                // Log the configured origins for debugging
+                System.out.println("🔧 CORS Configuration:");
+                System.out.println("   Raw FRONTEND_URL: " + frontendUrl);
+                System.out.println("   Parsed Origins: " + Arrays.toString(origins));
+
                 configuration.setAllowedOrigins(Arrays.asList(origins));
 
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
