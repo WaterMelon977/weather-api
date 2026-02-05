@@ -21,6 +21,9 @@ public class AuthController {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Value("${app.cookie.secure:false}")
+    private boolean isProd;
+
     public AuthController() {
     }
 
@@ -58,21 +61,19 @@ public class AuthController {
             session.invalidate();
         }
 
-        // 2. Clear AUTH_TOKEN
-        Cookie jwtCookie = new Cookie("AUTH_TOKEN", "");
-        jwtCookie.setHttpOnly(true);
-        jwtCookie.setSecure(false);
-        jwtCookie.setPath("/");
-        jwtCookie.setMaxAge(0);
-        response.addCookie(jwtCookie);
+        // 2. Clear AUTH_TOKEN with proper SameSite attribute
+        String clearAuthCookie = String.format(
+                "AUTH_TOKEN=; Path=/; HttpOnly; Max-Age=0; %s SameSite=%s",
+                isProd ? "Secure;" : "",
+                isProd ? "None" : "Lax");
+        response.addHeader("Set-Cookie", clearAuthCookie);
 
         // 3. Clear JSESSIONID
-        Cookie sessionCookie = new Cookie("JSESSIONID", "");
-        sessionCookie.setHttpOnly(true);
-        sessionCookie.setSecure(false);
-        sessionCookie.setPath("/");
-        sessionCookie.setMaxAge(0);
-        response.addCookie(sessionCookie);
+        String clearSessionCookie = String.format(
+                "JSESSIONID=; Path=/; HttpOnly; Max-Age=0; %s SameSite=%s",
+                isProd ? "Secure;" : "",
+                isProd ? "None" : "Lax");
+        response.addHeader("Set-Cookie", clearSessionCookie);
 
         try {
             response.sendRedirect(frontendUrl);

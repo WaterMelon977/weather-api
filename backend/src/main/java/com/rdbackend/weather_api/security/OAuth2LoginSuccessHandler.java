@@ -64,13 +64,15 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String token = jwtService.generateToken(email, provider, name, picture);
 
         // Create HttpOnly cookie with JWT
-        Cookie cookie = new Cookie("AUTH_TOKEN", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(isProd); // true in production (HTTPS)
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60); // 1 hour
+        // Use ResponseCookie for better control over SameSite attribute
+        String cookieValue = String.format(
+                "AUTH_TOKEN=%s; Path=/; HttpOnly; Max-Age=%d; %s SameSite=%s",
+                token,
+                60 * 60, // 1 hour
+                isProd ? "Secure;" : "",
+                isProd ? "None" : "Lax");
 
-        response.addCookie(cookie);
+        response.addHeader("Set-Cookie", cookieValue);
 
         // Redirect to frontend - frontend will then call /auth/me to get user details
         String targetUrl = frontendUrl.split(",")[0]; // Use first URL if multiple are configured
