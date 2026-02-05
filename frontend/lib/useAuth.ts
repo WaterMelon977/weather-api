@@ -20,12 +20,11 @@ export function useAuth() {
         })
             .then(async (res) => {
                 console.log("📡 /auth/me response status:", res.status);
+                const contentType = res.headers.get("content-type");
+                console.log("📄 Content-Type:", contentType);
 
                 if (!res.ok) {
-                    // Try to get error details
-                    const contentType = res.headers.get("content-type");
-                    console.log("📄 Content-Type:", contentType);
-
+                    // Handle error responses
                     if (contentType?.includes("application/json")) {
                         const errorData = await res.json();
                         console.log("❌ Error response:", errorData);
@@ -36,6 +35,13 @@ export function useAuth() {
                         console.log("❌ HTML response (first 200 chars):", text.substring(0, 200));
                         throw new Error("Not authenticated");
                     }
+                }
+
+                // Check content type even for successful responses
+                if (!contentType?.includes("application/json")) {
+                    const text = await res.text();
+                    console.log("⚠️ Expected JSON but got HTML (first 500 chars):", text.substring(0, 500));
+                    throw new Error("Server returned HTML instead of JSON");
                 }
 
                 return res.json();
