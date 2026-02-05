@@ -12,11 +12,32 @@ export function useAuth() {
 
     const fetchUser = () => {
         setLoading(true);
-        fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`, {
+        const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`;
+        console.log("🌐 Fetching user from:", url);
+
+        fetch(url, {
             credentials: "include", // 🔑 REQUIRED for HttpOnly cookie
         })
-            .then((res) => {
-                if (!res.ok) throw new Error("Not authenticated");
+            .then(async (res) => {
+                console.log("📡 /auth/me response status:", res.status);
+
+                if (!res.ok) {
+                    // Try to get error details
+                    const contentType = res.headers.get("content-type");
+                    console.log("📄 Content-Type:", contentType);
+
+                    if (contentType?.includes("application/json")) {
+                        const errorData = await res.json();
+                        console.log("❌ Error response:", errorData);
+                        throw new Error(errorData.error || "Not authenticated");
+                    } else {
+                        // HTML response (likely a redirect or error page)
+                        const text = await res.text();
+                        console.log("❌ HTML response (first 200 chars):", text.substring(0, 200));
+                        throw new Error("Not authenticated");
+                    }
+                }
+
                 return res.json();
             })
             .then((data) => {
