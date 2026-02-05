@@ -10,33 +10,34 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class SecurityConfig {
 
-    private final JwtService jwtService;
+        private final JwtService jwtService;
 
-    public SecurityConfig(JwtService jwtService) {
-        this.jwtService = jwtService;
-    }
+        public SecurityConfig(JwtService jwtService) {
+                this.jwtService = jwtService;
+        }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/weather/forecast/**").authenticated()
-                        .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/api/**").permitAll()
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**")
-                        .permitAll()
-                        .anyRequest().permitAll())
-                .oauth2Login(oauth -> oauth
-                        .defaultSuccessUrl("/auth/success", true))
-                .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtService.getKey()),
-                        UsernamePasswordAuthenticationFilter.class);
+                http
+                                .cors(Customizer.withDefaults())
+                                .csrf(csrf -> csrf.disable())
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/api/weather/forecast/**").authenticated()
+                                                .requestMatchers("/auth/**").permitAll()
+                                                .requestMatchers("/api/**").permitAll()
+                                                .requestMatchers(
+                                                                "/swagger-ui/**",
+                                                                "/v3/api-docs/**")
+                                                .permitAll()
+                                                .anyRequest().permitAll())
+                                .oauth2Login(oauth -> oauth
+                                                .defaultSuccessUrl("/auth/success", true))
+                                .addFilterBefore(
+                                                new JwtAuthenticationFilter(jwtService.getKey()),
+                                                UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
 }

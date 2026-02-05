@@ -13,8 +13,10 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        // Support multiple origins (comma-separated)
+        String[] origins = frontendUrl.split(",");
         registry.addMapping("/**")
-                .allowedOrigins(frontendUrl)
+                .allowedOrigins(origins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
