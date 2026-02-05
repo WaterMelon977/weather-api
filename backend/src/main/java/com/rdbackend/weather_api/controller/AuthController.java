@@ -7,13 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.rdbackend.weather_api.security.JwtService;
-import com.rdbackend.weather_api.service.UserService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,54 +18,10 @@ import jakarta.servlet.http.HttpSession;
 @RestController
 public class AuthController {
 
-    private final JwtService jwtService;
-    private final UserService userService;
-
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    @Value("${app.cookie.secure:false}")
-    private boolean isProd;
-
-    public AuthController(JwtService jwtService, UserService userService) {
-        this.jwtService = jwtService;
-        this.userService = userService;
-    }
-
-    @GetMapping("/auth/success")
-    public void loginSuccess(
-            @AuthenticationPrincipal OAuth2User user,
-            HttpServletResponse response) throws Exception {
-
-        // System.out.println("------------Here are userAttributes----------------");
-
-        // System.out.println(user.getAttributes());
-
-        String email = user.getAttribute("email");
-        String provider = user.getAuthorities().iterator().next().getAuthority();
-        String name = user.getAttribute("name");
-
-        String picture;
-        if (provider.equals("OIDC_USER")) {
-            picture = user.getAttribute("picture");
-        } else {
-            picture = user.getAttribute("avatar_url");
-        }
-        userService.upsertOAuthUser(email, name, picture, provider);
-        // System.out.println("User: " + user2);
-
-        String token = jwtService.generateToken(email, provider, name, picture);
-
-        Cookie cookie = new Cookie("AUTH_TOKEN", token);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(isProd); // true in production (HTTPS)
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60); // 1 hour
-
-        response.addCookie(cookie);
-
-        // redirect to frontend
-        response.sendRedirect(frontendUrl);
+    public AuthController() {
     }
 
     @GetMapping("/auth/me")

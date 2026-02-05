@@ -16,12 +16,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
         private final JwtService jwtService;
+        private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
 
         @Value("${app.frontend-url}")
         private String frontendUrl;
 
-        public SecurityConfig(JwtService jwtService) {
+        public SecurityConfig(JwtService jwtService, OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler) {
                 this.jwtService = jwtService;
+                this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
         }
 
         @Bean
@@ -40,7 +42,7 @@ public class SecurityConfig {
                                                 .permitAll()
                                                 .anyRequest().permitAll())
                                 .oauth2Login(oauth -> oauth
-                                                .defaultSuccessUrl("/auth/success", true))
+                                                .successHandler(oAuth2LoginSuccessHandler))
                                 .addFilterBefore(
                                                 new JwtAuthenticationFilter(jwtService.getKey()),
                                                 UsernamePasswordAuthenticationFilter.class);
