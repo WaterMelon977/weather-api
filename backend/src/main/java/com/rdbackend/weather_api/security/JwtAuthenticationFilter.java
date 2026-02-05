@@ -65,10 +65,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
+                System.out.println("✅ JWT Authentication successful for: " + email);
+
             } catch (Exception e) {
                 // invalid token → clear context
+                System.err.println("❌ JWT Authentication failed: " + e.getMessage());
                 SecurityContextHolder.clearContext();
             }
+        } else {
+            System.out.println("⚠️  No JWT token found in cookies for: " + request.getRequestURI());
         }
 
         filterChain.doFilter(request, response);

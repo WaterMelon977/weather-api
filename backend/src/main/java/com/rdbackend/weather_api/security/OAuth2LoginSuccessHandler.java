@@ -74,6 +74,13 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         // Redirect to frontend - frontend will then call /auth/me to get user details
         String targetUrl = frontendUrl.split(",")[0]; // Use first URL if multiple are configured
+
+        System.out.println("🔐 OAuth2 Login Success:");
+        System.out.println("   Email: " + email);
+        System.out.println("   Provider: " + provider);
+        System.out.println("   Cookie Secure: " + isProd);
+        System.out.println("   Redirecting to: " + targetUrl);
+
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

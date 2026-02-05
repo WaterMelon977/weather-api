@@ -27,6 +27,12 @@ public class AuthController {
     @GetMapping("/auth/me")
     public ResponseEntity<?> me(Authentication authentication) {
 
+        // Check if authentication is null
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Not authenticated"));
+        }
+
         try {
             // Attempt to cast the principal to a Map
             @SuppressWarnings("unchecked")
@@ -35,9 +41,12 @@ public class AuthController {
             // If successful, return the user map with a 200 OK status
             return ResponseEntity.ok(user);
 
-        } catch (Exception e) {
-            // If casting fails or authentication is null, return 404
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User profile not found");
+        } catch (ClassCastException e) {
+            // If casting fails, return 500 with error details
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of(
+                            "error", "Invalid authentication principal",
+                            "type", authentication.getPrincipal().getClass().getName()));
         }
     }
 

@@ -34,7 +34,9 @@ public class SecurityConfig {
                                 .csrf(csrf -> csrf.disable())
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers("/api/weather/forecast/**").authenticated()
-                                                .requestMatchers("/auth/**").permitAll()
+                                                .requestMatchers("/auth/me").authenticated()
+                                                .requestMatchers("/auth/logout").authenticated()
+                                                .requestMatchers("/oauth2/**", "/login/**").permitAll()
                                                 .requestMatchers("/api/**").permitAll()
                                                 .requestMatchers(
                                                                 "/swagger-ui/**",
