@@ -3,17 +3,15 @@ package com.rdbackend.weather_api.controller;
 import java.io.IOException;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
-import com.rdbackend.weather_api.entity.User;
 import com.rdbackend.weather_api.security.JwtService;
 import com.rdbackend.weather_api.service.UserService;
 
@@ -27,6 +25,12 @@ public class AuthController {
 
     private final JwtService jwtService;
     private final UserService userService;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
+    @Value("${app.cookie.secure:false}")
+    private boolean isProd;
 
     public AuthController(JwtService jwtService, UserService userService) {
         this.jwtService = jwtService;
@@ -59,14 +63,14 @@ public class AuthController {
 
         Cookie cookie = new Cookie("AUTH_TOKEN", token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // true in production (HTTPS)
+        cookie.setSecure(isProd); // true in production (HTTPS)
         cookie.setPath("/");
         cookie.setMaxAge(60 * 60); // 1 hour
 
         response.addCookie(cookie);
 
         // redirect to frontend
-        response.sendRedirect("http://localhost:3000");
+        response.sendRedirect(frontendUrl);
     }
 
     @GetMapping("/auth/me")
@@ -111,7 +115,7 @@ public class AuthController {
         response.addCookie(sessionCookie);
 
         try {
-            response.sendRedirect("http://localhost:3000");
+            response.sendRedirect(frontendUrl);
         } catch (IOException e) {
             e.printStackTrace();
         }
